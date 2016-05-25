@@ -226,25 +226,22 @@ def loop():
 		furthest_block = greenBlocks[furthest_idx] 
 		closest_block = greenBlocks[area_idx]
 
-	elif sideLane <> []:
-	
+    elif sideLane <> []:
+		sl_idx = 0
 		for sl in sideLane:
-			sidelane_area = sl.height*sl.width
-			if sidelane_area > max_area:
+	    		sidelane_area = sl.height*sl.width
+	    		if sidelane_area > max_area:
 				max_area = sidelane_area
-				area_idx = sb_idx 
-		
+				area_idx = sl_idx 
+	
 		averageX = abs(319-sideLane[area_idx].x)
-
-
+		closest_block = sideLane[area_idx]            
 
     singleObjTrack = 0 
-
-
-    # we select which object to track
-    target_block = closest_block 
-#    target_block = furthest_block
+    target_block  = closest_block
     if singleObjTrack == 1:
+        # we select which object to track 
+        #target_block = furthest_block
         panError = PIXY_X_CENTER - target_block.x
         objectDist = refSize1 / (2 * math.tan(math.radians(target_block.width * pix2ang_factor)))
     else :
@@ -252,8 +249,8 @@ def loop():
         objectDist = refSize1 / (2 * math.tan(math.radians(target_block.width * pix2ang_factor)))
         pass
     throttle = 0.3
-    diffDrive = 1.5* diffGain * abs(float(panError)) / PIXY_X_CENTER
-    #diffDrive = 0.6    
+    #diffDrive = 1.5* diffGain * abs(float(panError)) / PIXY_X_CENTER
+    diffDrive = 0.6    
     #distError = objectDist - targetDist
     #advance = driveGain * float(distError) / refDist
     advance = 1

@@ -320,7 +320,8 @@ def loop():
             print "panError: " + str(panError) + " objectDist: " + str(objectDist) + " diffDrive: " + str(diffDrive)
             #print objectDist
 
-            panLoop.update(panErrorOriginal)
+            panLoopServo.update(panErrorOriginal)
+            panLoop.update(panError)
             # Update pixy's pan position
             #pixy.pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, panLoop.m_pos)
 
@@ -352,7 +353,7 @@ def loop():
             else :
                 # we only adjust the beginning
                 advance = 0
-                pixy.pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, panLoop.m_pos)
+                pixy.pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, panLoopServo.m_pos)
             
             drive()
     else: # no green blocks
