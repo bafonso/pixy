@@ -200,6 +200,7 @@ class Gradient(object):
 
 # define pan loop
 panLoop = ServoLoop(300, 500)
+#panLoopServo = ServoLoop(300,500)
 
 # define LP_error for multiple variables
 LPError_x = LowPassFilter(100,dt)
@@ -286,86 +287,135 @@ def loop():
 
     if gb_idx > 0 : # we don't have green blocks
             
-            averageX = averageX / gb_idx
+        averageX = averageX / gb_idx
 
-            #print gb_idx
-            #print greenBlocks[area_idx].x
-          
-            furthest_block = greenBlocks[furthest_idx] 
-            closest_block = greenBlocks[area_idx]
+        #print gb_idx
+        #print greenBlocks[area_idx].x
+      
+        furthest_block = greenBlocks[furthest_idx] 
+        closest_block = greenBlocks[area_idx]
 
-            singleObjTrack = 0 
+        singleObjTrack = 0 
 
-            # we select which object to track
-            target_block = closest_block 
-        #    target_block = furthest_block
-            if singleObjTrack == 1:
-                panError = PIXY_X_CENTER - target_block.x
-                objectDist = refSize1 / (2 * math.tan(math.radians(target_block.width * pix2ang_factor)))
-            else :
-                panErrorOriginal = PIXY_X_CENTER - averageX
-                LPError_x.calculate(PIXY_X_CENTER - averageX)
-                
-                panError = LPError_x.currentValue
-                objectDist = refSize1 / (2 * math.tan(math.radians(target_block.width * pix2ang_factor)))
-                Grad_x.calculate(panError)
-                pass
-            throttle = 0.3
-            diffDrive = 1.5* diffGain * abs(float(panError)) / PIXY_X_CENTER
-            #diffDrive = 0.6    
-            #distError = objectDist - targetDist
-            #advance = driveGain * float(distError) / refDist
+        # we select which object to track
+        target_block = closest_block 
+    #    target_block = furthest_block
+        if singleObjTrack == 1:
+            panError = PIXY_X_CENTER - target_block.x
+            objectDist = refSize1 / (2 * math.tan(math.radians(target_block.width * pix2ang_factor)))
+        else :
+            panErrorRaw = PIXY_X_CENTER - averageX
+            LPError_x.calculate(PIXY_X_CENTER - averageX)
+            
+            panError = LPError_x.currentValue
+            objectDist = refSize1 / (2 * math.tan(math.radians(target_block.width * pix2ang_factor)))
+            Grad_x.calculate(panError)
+            pass
+        throttle = 0.3
+        diffDrive = 1.5* diffGain * abs(float(panError)) / PIXY_X_CENTER
+        #diffDrive = 0.6    
+        #distError = objectDist - targetDist
+        #advance = driveGain * float(distError) / refDist
+        advance = 1
+
+        print "panError: " + str(panError) + " objectDist: " + str(objectDist) + " diffDrive: " + str(diffDrive)
+        #print objectDist
+
+        panLoop.update(panErrorRaw)
+        # Update pixy's pan position
+        #pixy.pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, panLoop.m_pos)
+
+        # if Pixy sees nothing recognizable, don't move.
+        time_difference = currentTime - lastTime
+        if time_difference.total_seconds() >= timeout:
+            throttle = 0.0
+            diffDrive = 1
+
+        print "throttle is " + str(throttle)
+
+        drive_original = False
+
+
+        elapsedTime = currentTime - startTime 
+        if elapsedTime.seconds > waitTime:
+        
             advance = 1
-
-            print "panError: " + str(panError) + " objectDist: " + str(objectDist) + " diffDrive: " + str(diffDrive)
-            #print objectDist
-
-            panLoopServo.update(panErrorOriginal)
-            panLoop.update(panError)
-            # Update pixy's pan position
-            #pixy.pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, panLoop.m_pos)
-
-            # if Pixy sees nothing recognizable, don't move.
-            time_difference = currentTime - lastTime
-            if time_difference.total_seconds() >= timeout:
-                throttle = 0.0
-                diffDrive = 1
-
-            print "throttle is " + str(throttle)
-
-            # this is turning to left
-            print "panLoop.m_pos: " + str(panLoop.m_pos)
-            if panLoop.m_pos > PIXY_RCS_CENTER_POS:
-                # should be still int32_t
-                turnError = panLoop.m_pos - PIXY_RCS_CENTER_POS
-                # <0 is turning left; currently only p-control is implemented
-                bias = - float(turnError) / float(PIXY_RCS_CENTER_POS) * h_pgain
-            # this is turning to right
-            elif panLoop.m_pos < PIXY_RCS_CENTER_POS:
-                # should be still int32_t
-                turnError = PIXY_RCS_CENTER_POS - panLoop.m_pos
-                # >0 is turning left; currently only p-control is implemented
-                bias = float(turnError) / float(PIXY_RCS_CENTER_POS) * h_pgain
+            if drive_original == True: 
+                # this is turning to left
+                # print "panLoop.m_pos: " + str(panLoop.m_pos)
+                if panLoop.m_pos > PIXY_RCS_CENTER_POS:
+                    # should be still int32_t
+                    turnError = panLoop.m_pos - PIXY_RCS_CENTER_POS
+                    # <0 is turning left; currently only p-control is implemented
+                    bias = - float(turnError) / float(PIXY_RCS_CENTER_POS) * h_pgain
+                # this is turning to right
+                elif panLoop.m_pos < PIXY_RCS_CENTER_POS:
+                    # should be still int32_t
+                    turnError = PIXY_RCS_CENTER_POS - panLoop.m_pos
+                    # >0 is turning left; currently only p-control is implemented
+                    bias = float(turnError) / float(PIXY_RCS_CENTER_POS) * h_pgain
+                drive()
+            else: # we use our new way            
             
-            elapsedTime = currentTime - startTime 
-            if elapsedTime.seconds > waitTime:
-                advance = 1
-            else :
-                # we only adjust the beginning
-                advance = 0
-                pixy.pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, panLoopServo.m_pos)
-            
+                turnError =  Grad_x.uOut 
+                h_pgain = 1 # for now we don't do anything
+                bias = float(turnError) * h_pgain
+                drive_new()
+        else :
+            # we only adjust the beginning
+            advance = 0
+            pixy.pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, panLoop.m_pos)
+      
             drive()
+            drive_new()
+
     else: # no green blocks
         pass
 
 
-
-
-
-
  
     return run_flag
+
+def drive_new():
+    # synDrive is the drive level for going forward or backward (for both wheels)
+    throttle = 0.1
+    synDrive = advance *  throttle * totalDrive   
+    diffDrive = 1
+    #totalDrive = 1
+    biasRescale = 0.1 
+    leftDiff = - bias * biasRescale * diffDrive * throttle * totalDrive
+    rightDiff = bias * biasRescale * diffDrive * throttle * totalDrive
+    print "leftDiff is " + str(leftDiff)
+    # construct the drive levels
+    LDriveRaw = (synDrive + leftDiff)
+    RDriveRaw = (synDrive + rightDiff)
+
+    LPError_motorL.calculate(LDriveRaw)
+    LPError_motorR.calculate(RDriveRaw)
+    LDrive = LPError_motorL.currentValue
+    RDrive = LPError_motorR.currentValue 
+
+    # Make sure that it is outside dead band and less than the max
+    if LDrive > deadband:
+        if LDrive > MAX_MOTOR_SPEED:
+            LDrive = MAX_MOTOR_SPEED
+    elif LDrive < -deadband:
+        if LDrive < -MAX_MOTOR_SPEED:
+            LDrive = -MAX_MOTOR_SPEED
+    else:
+        LDrive = 0
+
+    if RDrive > deadband:
+        if RDrive > MAX_MOTOR_SPEED:
+            RDrive = MAX_MOTOR_SPEED
+    elif RDrive < -deadband:
+        if RDrive < -MAX_MOTOR_SPEED:
+            RDrive = -MAX_MOTOR_SPEED
+    else:
+        RDrive = 0
+
+    # Actually Set the motors
+    motors.setSpeeds(int(LDrive), int(RDrive))
 
 def drive():
     # synDrive is the drive level for going forward or backward (for both wheels)
