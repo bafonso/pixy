@@ -348,11 +348,13 @@ def loop():
             
             elapsedTime = currentTime - startTime 
             if elapsedTime.seconds > waitTime:
-                drive()
+                advance = 1
             else :
                 # we only adjust the beginning
+                advance = 0
                 pixy.pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, panLoop.m_pos)
-
+            
+            drive()
     else: # no green blocks
         pass
 
@@ -371,8 +373,13 @@ def drive():
     rightDiff = -bias * diffDrive * throttle * totalDrive
 
     # construct the drive levels
-    LDrive = (synDrive + leftDiff)
-    RDrive = (synDrive + rightDiff)
+    LDriveRaw = (synDrive + leftDiff)
+    RDriveRaw = (synDrive + rightDiff)
+
+    LPError_motorL.calculate(LDriveRaw)
+    LPError_motorR.calculate(RDriveRaw)
+    LDrive = LPError_motorL.currentValue
+    RDrive = LPError_motorR.currentValue 
 
     # Make sure that it is outside dead band and less than the max
     if LDrive > deadband:
