@@ -148,15 +148,55 @@ class LowPassFilter(object):
         self.previousError = float(0)
 
     def calculate(self, givenError):
-        print "givenError is " + str(givenError)
+        #print "givenError is " + str(givenError)
         #print "value is: " + str(self.lambdaOneF)
-        print str(self.lambdaF*(givenError + self.previousError))
-        self.currentValue = self.lambdaOneF * self.previousValue + 0.5*self.lambdaF*(givenError + self.previousError)*self.dt
+        #print str(self.lambdaF*(givenError + self.previousError))
+        self.currentValue = self.lambdaOneF * self.previousValue + 0.5*self.lambdaF*(givenError + self.previousError)
         #self.currentValue = self.lambdaOneF * self.previousValue + 0.5
-        print "self.lambdaOneF " + str(self.lambdaOneF)
-        print "self.previousValue " + str(self.previousValue)
+        #print "self.lambdaOneF " + str(self.lambdaOneF)
+        #print "self.previousValue " + str(self.previousValue)
         self.previousValue = self.currentValue
         self.previousError = givenError
+
+
+class Gradient(object):
+    """
+    Gradient
+    """
+    def __init__(self,tau,alpha,dt):
+        self.centerX = PIXY_RCS_CENTER_POS
+        self.tau = tau
+        self.llambda = float(1)/tau
+        self.dt = dt
+        self.alpha = alpha
+        self.lambdaF = self.llambda*self.dt
+        self.lambdaOneF = (1 - self.lambdaF)
+        self.u1 = 0
+        self.u2 = 0
+        self.previousU1 = 0
+        self.previousU2 = 0
+        self.previousGivenValue = float(0)
+        self.uOut = 0
+
+    def calculate(self, givenValue):
+        self.u1 = (1-self.llambda*self.dt)*self.previousU1 + 0.5*self.dt*(givenValue + self.previousGivenValue)
+        self.u2 = self.llambda*self.dt*self.previousU1 + (1-self.llambda*self.dt)*self.previousU2
+        self.uOut = self.alpha*(self.u1 - self.u2)
+        self.previousU1 = self.u1
+        self.previousU2 = self.u2
+        self.previousGivenValue = givenValue
+        print "uOut is " + str(self.uOut)
+        #print "givenError is " + str(givenError)
+        #print "value is: " + str(self.lambdaOneF)
+        #print str(self.lambdaF*(givenError + self.previousError))
+        #self.currentValue = self.lambdaOneF * self.previousValue + 0.5*self.lambdaF*(givenError + self.previousError)
+        #self.currentValue = self.lambdaOneF * self.previousValue + 0.5
+        #print "self.lambdaOneF " + str(self.lambdaOneF)
+        #print "self.previousValue " + str(self.previousValue)
+        #self.previousValue = self.currentValue
+        #self.previousError = givenError
+
+
 
 # define pan loop
 panLoop = ServoLoop(300, 500)
@@ -165,6 +205,9 @@ panLoop = ServoLoop(300, 500)
 LPError_x = LowPassFilter(100,dt)
 LPError_motorL = LowPassFilter(100,dt)
 LPError_motorR = LowPassFilter(100,dt)
+
+# define gradients for movement
+Grad_x = Gradient(100,0.01,dt)
 
 def setup():
     """
@@ -260,10 +303,12 @@ def loop():
                 panError = PIXY_X_CENTER - target_block.x
                 objectDist = refSize1 / (2 * math.tan(math.radians(target_block.width * pix2ang_factor)))
             else :
-                #panError = PIXY_X_CENTER - averageX
+                panErrorOriginal = PIXY_X_CENTER - averageX
                 LPError_x.calculate(PIXY_X_CENTER - averageX)
+                
                 panError = LPError_x.currentValue
                 objectDist = refSize1 / (2 * math.tan(math.radians(target_block.width * pix2ang_factor)))
+                Grad_x.calculate(panError)
                 pass
             throttle = 0.3
             diffDrive = 1.5* diffGain * abs(float(panError)) / PIXY_X_CENTER
@@ -275,7 +320,7 @@ def loop():
             print "panError: " + str(panError) + " objectDist: " + str(objectDist) + " diffDrive: " + str(diffDrive)
             #print objectDist
 
-            panLoop.update(panError)
+            panLoop.update(panErrorOriginal)
             # Update pixy's pan position
             #pixy.pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, panLoop.m_pos)
 
@@ -302,7 +347,7 @@ def loop():
                 bias = float(turnError) / float(PIXY_RCS_CENTER_POS) * h_pgain
             
             elapsedTime = currentTime - startTime 
-            if elapsedTime.secs > waiTime:
+            if elapsedTime.seconds > waitTime:
                 drive()
             else :
                 # we only adjust the beginning
