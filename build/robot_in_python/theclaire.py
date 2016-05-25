@@ -220,7 +220,7 @@ def loop():
 		#averageX = averageX / gb_idx
 		averageX = averageX + greenBlocks[area_idx].x / (gb_idx+1) # average weighted (a bit) w/ closest block
 
-		print gb_idx
+		print "greenblock is " + str(gb_idx)
 		print greenBlocks[area_idx].x
   
 		furthest_block = greenBlocks[furthest_idx] 
@@ -236,9 +236,18 @@ def loop():
 	
 		averageX = abs(319-sideLane[area_idx].x)
 		closest_block = sideLane[area_idx]            
-
+	
+		print "side lane ID is " + str(area_idx) + "X pos is " + str(sideLane[area_idx].x)
+		print "averageX is " + str(averageX)
+		
+    else :
+    		averageX = 50
+    		
     singleObjTrack = 0 
-    target_block  = closest_block
+    
+    #target_block  = closest_block
+    		averageX = 50
+    
     if singleObjTrack == 1:
         # we select which object to track 
         #target_block = furthest_block
@@ -246,9 +255,9 @@ def loop():
         objectDist = refSize1 / (2 * math.tan(math.radians(target_block.width * pix2ang_factor)))
     else :
         panError = PIXY_X_CENTER - averageX
-        objectDist = refSize1 / (2 * math.tan(math.radians(target_block.width * pix2ang_factor)))
+        #objectDist = refSize1 / (2 * math.tan(math.radians(target_block.width * pix2ang_factor)))
         pass
-    throttle = 0.3
+    throttle = 0.5
     #diffDrive = 1.5* diffGain * abs(float(panError)) / PIXY_X_CENTER
     diffDrive = 0.6    
     #distError = objectDist - targetDist
