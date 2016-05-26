@@ -215,16 +215,15 @@ def loop():
 				furthest = gb.y
 		
 			averageX = averageX + gb.x 
-			gb_idx = gb_idx + 1  
+			gb_idx = gb_idx + 1 
 	
-		#averageX = averageX / gb_idx
-		averageX = averageX + greenBlocks[area_idx].x / (gb_idx+1) # average weighted (a bit) w/ closest block
+		averageX = averageX / gb_idx
+		#averageX = averageX + greenBlocks[area_idx].x / (gb_idx+1) # average weighted (a bit) w/ closest block
 
-		print "greenblock is " + str(gb_idx)
-		print greenBlocks[area_idx].x
-  
-		furthest_block = greenBlocks[furthest_idx] 
-		closest_block = greenBlocks[area_idx]
+  		print "green block n# " + str(gb_idx) + ", X pos is " +  str(greenBlocks[area_idx].x) + ", averageX is " + str(averageX)
+
+		#furthest_block = greenBlocks[furthest_idx] 
+		#closest_block = greenBlocks[area_idx]
 
     elif sideLane <> []:
 		sl_idx = 0
@@ -237,12 +236,11 @@ def loop():
 		averageX = abs(319-sideLane[area_idx].x)
 		closest_block = sideLane[area_idx]            
 	
-		print "side lane ID is " + str(area_idx) + "X pos is " + str(sideLane[area_idx].x)
-		print "averageX is " + str(averageX)
+		print "side lane n# " + str(area_idx) + ", X pos is " +  str(sideLane[area_idx].x) + ", averageX is " + str(averageX)
 		
     else :
     		averageX = 50
-    		
+    		print "no blocks, averageX is " + str(averageX)
     singleObjTrack = 0 
     
     #target_block  = closest_block
